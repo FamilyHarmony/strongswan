@@ -5,19 +5,8 @@
 
 typedef struct private_balancer_plugin_t private_balancer_plugin_t;
 
-/**
- * private data of balancer plugin
- */
 struct private_balancer_plugin_t {
-
-	/**
-	 * implements plugin interface
-	 */
 	balancer_plugin_t public;
-
-	/**
-	 * redirect provider
-	 */
 	balancer_provider_t *provider;
 };
 
@@ -27,9 +16,6 @@ METHOD(plugin_t, get_name, char*,
 	return "balancer";
 }
 
-/**
- * Register provider
- */
 static bool plugin_cb(private_balancer_plugin_t *this,
 					  plugin_feature_t *feature, bool reg, void *cb_data)
 {
@@ -71,9 +57,6 @@ METHOD(plugin_t, destroy, void,
 	free(this);
 }
 
-/*
- * see header file
- */
 plugin_t *balancer_plugin_create()
 {
 	private_balancer_plugin_t *this;

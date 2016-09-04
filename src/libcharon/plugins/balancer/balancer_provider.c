@@ -5,40 +5,17 @@
 #include <daemon.h>
 #include <utils/debug.h>
 #include <utils/identification.h>
-//#include <collections/linked_list.h>
-//#include <threading/rwlock.h>
 
-//#define SERVER_MAX		2
 
 typedef struct private_balancer_provider_t private_balancer_provider_t;
 typedef struct attribute_entry_t attribute_entry_t;
 
-//static balancer_gateways_t gateways[] = {
-//    {"127.0.0.1"},
-//    {"127.0.0.2"},
-//};
-
-/**
- * private data of attr_provider
- */
 struct private_balancer_provider_t {
-
-	/**
-	 * public functions
-	 */
 	balancer_provider_t public;
-	
 	char *command;
 };
 
 METHOD(redirect_provider_t, redirect_on_init, bool,
-	private_balancer_provider_t *this,
-	ike_sa_t *ike_sa, identification_t **gateway)
-{
-    return FALSE;
-}
-
-METHOD(redirect_provider_t, redirect_on_auth, bool,
 	private_balancer_provider_t *this,
 	ike_sa_t *ike_sa, identification_t **gateway)
 {
@@ -47,15 +24,26 @@ METHOD(redirect_provider_t, redirect_on_auth, bool,
 
     fp = popen(this->command, "r");
     if (fp == NULL) {
-        DBG1(DBG_CFG, "unable to execute command: %s", this->command);
+        DBG1(DBG_CFG, "unable to execute command: '%s'", this->command);
     } else {
+        DBG3(DBG_CFG, "balancer command succeeded");
         if (fgets(gw, sizeof(gw)-1, fp) != NULL) {
+            DBG2(DBG_CFG, "got balancer command response: '%s'", gw);
             *gateway = identification_create_from_string(gw);
             if (*gateway != NULL) {
+                DBG3(DBG_CFG, "gateway is valid, redirecting...");
                 return TRUE;
             }
         }
     }
+    return FALSE;
+}
+
+METHOD(redirect_provider_t, redirect_on_auth, bool,
+	private_balancer_provider_t *this,
+	ike_sa_t *ike_sa, identification_t **gateway)
+{
+    DBG3(DBG_CFG, "skipping AUTH redirect");
     return FALSE;
 }
 
@@ -68,15 +56,10 @@ METHOD(balancer_provider_t, destroy, void,
 METHOD(balancer_provider_t, reload, void,
 	private_balancer_provider_t *this)
 {
-    this->command = lib->settings->get_str(lib->settings, "%s.plugins.balancer.command", NULL, lib->ns);
-	//DBG1(DBG_CFG, "loaded %d entr%s for attr plugin configuration",
-	//	 this->attributes->get_count(this->attributes),
-	//	 this->attributes->get_count(this->attributes) == 1 ? "y" : "ies");
+	this->command = lib->settings->get_str(lib->settings, "%s.plugins.balancer.command", NULL, lib->ns);
+	DBG1(DBG_CFG, "reloaded balancer plugin command: %s", this->command);
 }
 
-/*
- * see header file
- */
 balancer_provider_t *balancer_provider_create(database_t *db)
 {
 	private_balancer_provider_t *this;
@@ -92,7 +75,8 @@ balancer_provider_t *balancer_provider_create(database_t *db)
 		}
 	);
 
-    this->command = lib->settings->get_str(lib->settings, "%s.plugins.balancer.command", NULL, lib->ns);
+	this->command = lib->settings->get_str(lib->settings, "%s.plugins.balancer.command", NULL, lib->ns);
+	DBG1(DBG_CFG, "loaded balancer plugin command: %s", this->command);
 
 	return &this->public;
 }
