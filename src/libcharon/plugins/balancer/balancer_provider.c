@@ -20,11 +20,19 @@ METHOD(redirect_provider_t, redirect_on_init, bool,
 	ike_sa_t *ike_sa, identification_t **gateway)
 {
     FILE *fp;
+    host_t *client_host;
     char gw[1024];
+    char *ip;
+    char cmd[512];
 
-    fp = popen(this->command, "r");
+    client_host = ike_sa->get_other_host(ike_sa);
+
+    DBG2(DBG_CFG, "client IP address for balancing: [%H]", client_host);
+    snprintf(cmd, sizeof(cmd), "%s %H", this->command, client_host);
+
+    fp = popen(cmd, "r");
     if (fp == NULL) {
-        DBG1(DBG_CFG, "unable to execute command: '%s'", this->command);
+        DBG1(DBG_CFG, "unable to execute command: '%s'", cmd);
     } else {
         DBG3(DBG_CFG, "balancer command succeeded");
         if (fgets(gw, sizeof(gw)-1, fp) != NULL) {
