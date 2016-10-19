@@ -24,6 +24,7 @@ METHOD(redirect_provider_t, redirect_on_init, bool,
     char gw[1024];
     char *ip;
     char cmd[512];
+    bool status = FALSE;
 
     client_host = ike_sa->get_other_host(ike_sa);
 
@@ -40,11 +41,12 @@ METHOD(redirect_provider_t, redirect_on_init, bool,
             *gateway = identification_create_from_string(gw);
             if (*gateway != NULL) {
                 DBG3(DBG_CFG, "gateway is valid, redirecting...");
-                return TRUE;
+                status = TRUE;
             }
         }
+        pclose(fp);
     }
-    return FALSE;
+    return status;
 }
 
 METHOD(redirect_provider_t, redirect_on_auth, bool,
