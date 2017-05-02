@@ -22,7 +22,6 @@ METHOD(redirect_provider_t, redirect_on_init, bool,
     FILE *fp;
     host_t *client_host;
     char gw[1024];
-    char *ip;
     char cmd[512];
     bool status = FALSE;
 

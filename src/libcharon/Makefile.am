@@ -711,6 +711,13 @@ if MONOLITHIC
 endif
 endif
 
+if USE_UNGLUE_CRED
+  SUBDIRS += plugins/unglue_cred
+if MONOLITHIC
+  libcharon_la_LIBADD += plugins/unglue_cred/libstrongswan-unglue-cred.la
+endif
+endif
+
 if MONOLITHIC
   SUBDIRS += .
 endif
