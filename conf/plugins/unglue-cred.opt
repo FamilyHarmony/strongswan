@@ -1,2 +1,13 @@
-charon.plugins.unglue-cred.dummy
-	Dummy.
+charon.plugins.unglue-cred.key0 =
+	Secret key #0 for HMAC secrets.
+
+charon.plugins.unglue-cred.key1 =
+	Secret key #1.
+	
+	Up to 10 secret keys.
+
+charon.plugins.unglue-cred.hmac = yes
+	Use hmac secrects [2000@100.hmac-S00 -> HMAC(key00, 100.2000, sha1/160)].
+
+charon.plugins.unglue-cred.plain = yes
+	Use plain secrects [2000@100.device -> 100.2000@unglue].
