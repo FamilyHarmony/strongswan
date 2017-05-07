@@ -1,19 +1,19 @@
-#include "balancer_plugin.h"
-#include "balancer_provider.h"
+#include "unglue_balancer_plugin.h"
+#include "unglue_balancer_provider.h"
 
 #include <daemon.h>
 
 typedef struct private_balancer_plugin_t private_balancer_plugin_t;
 
 struct private_balancer_plugin_t {
-	balancer_plugin_t public;
-	balancer_provider_t *provider;
+	unglue_balancer_plugin_t public;
+	unglue_balancer_provider_t *provider;
 };
 
 METHOD(plugin_t, get_name, char*,
 	private_balancer_plugin_t *this)
 {
-	return "balancer";
+	return "unglue-balancer";
 }
 
 static bool plugin_cb(private_balancer_plugin_t *this,
@@ -57,7 +57,7 @@ METHOD(plugin_t, destroy, void,
 	free(this);
 }
 
-plugin_t *balancer_plugin_create()
+plugin_t *unglue_balancer_plugin_create()
 {
 	private_balancer_plugin_t *this;
 
@@ -70,7 +70,7 @@ plugin_t *balancer_plugin_create()
 				.destroy = _destroy,
 			},
 		},
-		.provider = balancer_provider_create(),
+		.provider = unglue_balancer_provider_create(),
 	);
 
 	return &this->public.plugin;

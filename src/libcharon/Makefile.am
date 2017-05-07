@@ -704,10 +704,10 @@ if MONOLITHIC
 endif
 endif
 
-if USE_BALANCER
-  SUBDIRS += plugins/balancer
+if USE_UNGLUE_BALANCER
+  SUBDIRS += plugins/unglue_balancer
 if MONOLITHIC
-  libcharon_la_LIBADD += plugins/balancer/libstrongswan-balancer.la
+  libcharon_la_LIBADD += plugins/balancer/libstrongswan-unglue-balancer.la
 endif
 endif
 

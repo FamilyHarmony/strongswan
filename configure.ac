@@ -228,7 +228,7 @@ ARG_DISBL_SET([vici],           [disable strongSwan IKE generic IPC interface pl
 ARG_ENABL_SET([android-dns],    [enable Android specific DNS handler.])
 ARG_DISBL_SET([attr],           [disable strongswan.conf based configuration attribute plugin.])
 ARG_ENABL_SET([attr-sql],       [enable SQL based configuration attribute plugin.])
-ARG_DISBL_SET([balancer],       [disable balancer plugin.])
+ARG_DISBL_SET([unglue-balancer],[disable unGlue balancer plugin.])
 ARG_DISBL_SET([unglue-cred],    [disable unGlue creds plugin.])
 ARG_ENABL_SET([dhcp],           [enable DHCP based attribute provider plugin.])
 ARG_ENABL_SET([osx-attr],       [enable OS X SystemConfiguration attribute handler.])
@@ -1385,7 +1385,7 @@ ADD_PLUGIN([mysql],                [s charon pool manager medsrv attest])
 ADD_PLUGIN([sqlite],               [s charon pool manager medsrv attest])
 ADD_PLUGIN([attr],                 [c charon])
 ADD_PLUGIN([attr-sql],             [c charon])
-ADD_PLUGIN([balancer],             [c charon])
+ADD_PLUGIN([unglue-balancer],      [c charon])
 ADD_PLUGIN([unglue-cred],          [c charon])
 ADD_PLUGIN([load-tester],          [c charon])
 ADD_PLUGIN([kernel-libipsec],      [c charon cmd])
@@ -1630,7 +1630,7 @@ AM_CONDITIONAL(USE_UNITY, test x$unity = xtrue)
 AM_CONDITIONAL(USE_RESOLVE, test x$resolve = xtrue)
 AM_CONDITIONAL(USE_ATTR, test x$attr = xtrue)
 AM_CONDITIONAL(USE_ATTR_SQL, test x$attr_sql = xtrue)
-AM_CONDITIONAL(USE_BALANCER, test x$balancer = xtrue)
+AM_CONDITIONAL(USE_UNGLUE_BALANCER, test x$unglue_balancer = xtrue)
 AM_CONDITIONAL(USE_UNGLUE_CRED, test x$unglue_cred = xtrue)
 
 #  other options
@@ -1915,7 +1915,7 @@ AC_CONFIG_FILES([
 	src/libcharon/plugins/resolve/Makefile
 	src/libcharon/plugins/attr/Makefile
 	src/libcharon/plugins/attr_sql/Makefile
-	src/libcharon/plugins/balancer/Makefile
+	src/libcharon/plugins/unglue_balancer/Makefile
 	src/libcharon/plugins/unglue_cred/Makefile
 	src/libcharon/tests/Makefile
 	src/libtpmtss/Makefile

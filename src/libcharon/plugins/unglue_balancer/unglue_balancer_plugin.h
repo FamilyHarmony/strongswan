@@ -6,17 +6,17 @@
  * @{ @ingroup attr
  */
 
-#ifndef BALANCER_PLUGIN_H_
-#define BALANCER_PLUGIN_H_
+#ifndef UNGLUE_BALANCER_PLUGIN_H_
+#define UNGLUE_BALANCER_PLUGIN_H_
 
 #include <plugins/plugin.h>
 
-typedef struct balancer_plugin_t balancer_plugin_t;
+typedef struct unglue_balancer_plugin_t unglue_balancer_plugin_t;
 
 /**
  * Plugin providing configuration attribute through strongswan.conf.
  */
-struct balancer_plugin_t {
+struct unglue_balancer_plugin_t {
 
 	/**
 	 * implements plugin interface
@@ -24,4 +24,4 @@ struct balancer_plugin_t {
 	plugin_t plugin;
 };
 
-#endif /** BALANCER_PLUGIN_H_ @}*/
+#endif /** UNGLUE_BALANCER_PLUGIN_H_ @}*/
