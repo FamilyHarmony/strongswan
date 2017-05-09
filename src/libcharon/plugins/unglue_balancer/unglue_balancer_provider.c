@@ -12,40 +12,89 @@ typedef struct attribute_entry_t attribute_entry_t;
 
 struct private_balancer_provider_t {
 	unglue_balancer_provider_t public;
-	char *command;
+	char *url_template;
+	int timeout;
 };
 
 METHOD(redirect_provider_t, redirect_on_init, bool,
 	private_balancer_provider_t *this,
 	ike_sa_t *ike_sa, identification_t **gateway)
 {
-    FILE *fp;
     host_t *client_host;
-    char gw[1024];
-    char cmd[512];
-    bool status = FALSE;
+    char url[512] = {0};
+	bool result = FALSE;
 
-    client_host = ike_sa->get_other_host(ike_sa);
+	if (!this->url_template || !strstr(this->url_template, "%H"))
+	{
+		DBG1(DBG_LIB, "unglue-balancer URL template is empty or invalid, redirect disabled");
+		return FALSE;
+	}
 
-    DBG2(DBG_CFG, "client IP address for balancing: [%H]", client_host);
-    snprintf(cmd, sizeof(cmd), "%s %H", this->command, client_host);
+	client_host = ike_sa->get_other_host(ike_sa);
+	DBG2(DBG_LIB, "unglue-balancer client IP address: %H", client_host);
 
-    fp = popen(cmd, "r");
-    if (fp == NULL) {
-        DBG1(DBG_CFG, "unable to execute command: '%s'", cmd);
-    } else {
-        DBG3(DBG_CFG, "unglue-balancer command succeeded");
-        if (fgets(gw, sizeof(gw)-1, fp) != NULL) {
-            DBG2(DBG_CFG, "got unglue-balancer command response: '%s'", gw);
-            *gateway = identification_create_from_string(gw);
-            if (*gateway != NULL) {
-                DBG3(DBG_CFG, "gateway is valid, redirecting...");
-                status = TRUE;
-            }
-        }
-        pclose(fp);
-    }
-    return status;
+	snprintf(url, sizeof(url), this->url_template, client_host);
+
+	status_t status;
+	int code = 0;
+	chunk_t response = chunk_empty;
+
+	status = lib->fetcher->fetch(lib->fetcher, url, &response,
+				FETCH_TIMEOUT, this->timeout,
+				FETCH_RESPONSE_CODE, &code,
+				FETCH_END);
+
+	if (status == SUCCESS)
+	{
+		if (response.ptr)
+		{
+			if (code == 200)
+			{
+				DBG2(DBG_LIB, "unglue-balancer API call OK (status=%d, code=%d, resp %B)", status, code, &response);
+
+				u_char *nl = NULL;
+				chunk_t ip = chunk_empty;
+
+				nl = memchr(response.ptr, '\r', response.len);
+				if (!nl)
+					nl = memchr(response.ptr, '\n', response.len);
+				if (nl)
+				{
+					ip = chunk_create(response.ptr, nl - response.ptr);
+					DBG2(DBG_LIB, "unglue-balancer IP %B", &ip);
+					*gateway = identification_create_from_data(ip);
+					if (*gateway)
+					{
+						DBG2(DBG_LIB, "unglue-balancer gateway identification is valid, redirecting...");
+						result = TRUE;
+					}
+					else
+					{
+						DBG1(DBG_LIB, "unglue-balancer is unable to create gateway identification");
+					}
+				}
+				else
+				{
+					DBG1(DBG_LIB, "unglue-balancer API response body is invalid, resp %B", &response);
+				}
+			}
+			else
+			{
+				DBG1(DBG_IMV, "unglue-balancer API call failed, code=%d", code);
+			}
+			chunk_clear(&response);
+		}
+		else
+		{
+			DBG1(DBG_IMV, "unglue-balancer API call failed, resp %B", code);
+		}
+	}
+	else
+	{
+		DBG1(DBG_LIB, "unglue-balancer API call failed, status=%d", status);
+	}
+
+	return result;
 }
 
 METHOD(redirect_provider_t, redirect_on_auth, bool,
@@ -65,8 +114,9 @@ METHOD(unglue_balancer_provider_t, destroy, void,
 METHOD(unglue_balancer_provider_t, reload, void,
 	private_balancer_provider_t *this)
 {
-	this->command = lib->settings->get_str(lib->settings, "%s.plugins.unglue-balancer.command", NULL, lib->ns);
-	DBG1(DBG_CFG, "reloaded unglue-balancer plugin command: %s", this->command);
+	this->url_template = lib->settings->get_str(lib->settings, "%s.plugins.unglue-balancer.url", NULL, lib->ns);
+	this->timeout = lib->settings->get_int(lib->settings, "%s.plugins.unglue-balancer.timeout", 3, lib->ns);
+	DBG1(DBG_CFG, "unglue-balancer re-loaded: URL=%s, timeout=%d", this->url_template, this->timeout);
 }
 
 unglue_balancer_provider_t *unglue_balancer_provider_create(database_t *db)
@@ -84,8 +134,9 @@ unglue_balancer_provider_t *unglue_balancer_provider_create(database_t *db)
 		}
 	);
 
-	this->command = lib->settings->get_str(lib->settings, "%s.plugins.unglue-balancer.command", NULL, lib->ns);
-	DBG1(DBG_CFG, "loaded unglue-balancer plugin command: %s", this->command);
+	this->url_template = lib->settings->get_str(lib->settings, "%s.plugins.unglue-balancer.url", NULL, lib->ns);
+	this->timeout = lib->settings->get_int(lib->settings, "%s.plugins.unglue-balancer.timeout", 3, lib->ns);
+	DBG1(DBG_CFG, "unglue-balancer loaded: URL=%s, timeout=%d", this->url_template, this->timeout);
 
 	return &this->public;
 }

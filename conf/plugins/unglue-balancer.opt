@@ -1,2 +1,7 @@
-charon.plugins.unglue-balancer.command
-	Command for retreiving host.
+charon.plugins.unglue-balancer.url =
+	URL template for unGlue balancer API call. The '%H' token is a placeholder for the client's ext. IP address.
+	
+	Example: https://api.unglue.net/v1/config/vpn?remoteClientIp=%H&contentType=text
+
+charon.plugins.unglue-balancer.timeout = 3
+	Balancer API call timeout.

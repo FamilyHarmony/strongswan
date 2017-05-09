@@ -2,6 +2,7 @@
 #include "unglue_balancer_provider.h"
 
 #include <daemon.h>
+#include <library.h>
 
 typedef struct private_balancer_plugin_t private_balancer_plugin_t;
 
@@ -38,6 +39,8 @@ METHOD(plugin_t, get_features, int,
 	static plugin_feature_t f[] = {
 		PLUGIN_CALLBACK((plugin_feature_callback_t)plugin_cb, NULL),
 			PLUGIN_PROVIDE(CUSTOM, "redirect"),
+				PLUGIN_DEPENDS(FETCHER, "http://"),
+				PLUGIN_DEPENDS(FETCHER, "https://")
 	};
 	*features = f;
 	return countof(f);
