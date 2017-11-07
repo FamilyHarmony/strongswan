@@ -6,13 +6,15 @@
 #include <utils/debug.h>
 #include <credentials/sets/callback_cred.h>
 
+#define UG_MAX_KEYS 10
+
 typedef struct private_unglue_cred_plugin_t private_unglue_cred_plugin_t;
 
 struct private_unglue_cred_plugin_t {
 	unglue_cred_plugin_t public;
 	callback_cred_t      *cb;
 	signer_t             *signer;
-	char*                keys[10];
+	char*                keys[UG_MAX_KEYS];
 	bool                 enable_hmac;
 	bool                 enable_plain;
 };
@@ -64,6 +66,11 @@ static shared_key_t* callback_shared(private_unglue_cred_plugin_t *this,
 
 		snprintf(pw, sizeof(pw), "%u.%u", acc, dev);
 		DBG2(DBG_CFG, "secret plain: %s, key#: %u", pw, key_no);
+		if (key_no >= UG_MAX_KEYS)
+		{
+			DBG1(DBG_IKE, "warning: requested key #%u is invalid (# > 10), unable to sign", key_no);
+			return NULL;
+		}
 
 		if (this->keys[key_no] == NULL)
 		{
@@ -179,8 +186,8 @@ plugin_t *unglue_cred_plugin_create()
 	this->keys[1] = lib->settings->get_str(lib->settings, "%s.plugins.unglue-cred.key1", NULL, lib->ns);
 	this->keys[2] = lib->settings->get_str(lib->settings, "%s.plugins.unglue-cred.key2", NULL, lib->ns);
 	this->keys[3] = lib->settings->get_str(lib->settings, "%s.plugins.unglue-cred.key3", NULL, lib->ns);
-	for (uint i = 0; i < 10; i++) {
-		if (this->keys[i] != NULL) DBG1(DBG_CFG, "loaded unglue-cred key #%u", i);
+	for (uint i = 0; i < UG_MAX_KEYS; i++) {
+		if (this->keys[i] != NULL) DBG0(DBG_CFG, "unglue-cred: loaded key #%u", i);
 	}
 
 	return &this->public.plugin;
