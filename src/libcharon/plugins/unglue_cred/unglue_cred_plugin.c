@@ -97,6 +97,21 @@ static shared_key_t* callback_shared(private_unglue_cred_plugin_t *this,
 		chunk_to_hex(chunk_from_thing(sig), sig_hex, FALSE);
 		DBG1(DBG_IKE, "secret hmac: %s", sig_hex);
 
+		char sig_hex_x[41] = {0};
+		uint8_t sig_x[20] = {0};
+
+		signer_t *s = lib->crypto->create_signer(lib->crypto, AUTH_HMAC_SHA1_160);
+		if (s) {
+			if (s->set_key(s, chunk_from_str(this->keys[key_no])))
+				if (s->get_signature(s, chunk_from_str(pw), sig_x)) {
+					chunk_to_hex(chunk_from_thing(sig_x), sig_hex_x, FALSE);
+					DBG1(DBG_IKE, "secret hmac (alter test): %s", sig_hex_x);
+				}
+			s->destroy(s);
+		} else {
+			DBG1(DBG_IKE, "error: unable to create alternate signer");
+		}
+
 		shared = shared_key_create(type, chunk_clone(chunk_from_str(sig_hex)));
 		return shared->get_ref(shared);
 	}
