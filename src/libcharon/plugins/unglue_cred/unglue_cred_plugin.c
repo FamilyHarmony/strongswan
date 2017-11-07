@@ -36,16 +36,16 @@ static shared_key_t* callback_shared(private_unglue_cred_plugin_t *this,
 	uint dev, acc;
 	uint key_no;
 	
-	DBG2(DBG_CFG, "unglue cred for id: '%Y' (type: %d)", other, type);
+	DBG2(DBG_IKE, "unglue cred: for id '%Y' (type: %d)", other, type);
 	
 	switch (type)
 	{
 		case SHARED_EAP:
 			//label = str_from_chunk(other->get_encoding(other));
-			DBG3(DBG_CFG, "type is SHARED_EAP", other);
+			DBG2(DBG_IKE, "type is SHARED_EAP", other);
 			break;
 		default:
-			DBG3(DBG_CFG, "unsupported type: %d", type);
+			DBG2(DBG_IKE, "unsupported type: %d", type);
 			return NULL;
 	}
 	
@@ -62,10 +62,11 @@ static shared_key_t* callback_shared(private_unglue_cred_plugin_t *this,
 
 	if (this->enable_hmac && sscanf(id, "%u@%u.hmac-S%u", &dev, &acc, &key_no) == 3)
 	{
-		DBG2(DBG_CFG, "unglue-cred type = hmac");
+		DBG1(DBG_IKE, "unglue-cred: type = hmac");
 
 		snprintf(pw, sizeof(pw), "%u.%u", acc, dev);
-		DBG2(DBG_CFG, "secret plain: %s, key#: %u", pw, key_no);
+		DBG1(DBG_IKE, "unglue-cred: secret hmac pw: %s, key#: %u", pw, key_no);
+
 		if (key_no >= UG_MAX_KEYS)
 		{
 			DBG1(DBG_IKE, "warning: requested key #%u is invalid (# > 10), unable to sign", key_no);
@@ -74,24 +75,27 @@ static shared_key_t* callback_shared(private_unglue_cred_plugin_t *this,
 
 		if (this->keys[key_no] == NULL)
 		{
-			DBG1(DBG_CFG, "requested key #%u is NULL, unable to sign", key_no);
+			DBG1(DBG_IKE, "warning: requested key #%u is NULL, unable to sign", key_no);
 			return NULL;
 		}
+
+		DBG2(DBG_IKE, "key #%u is %s", key_no, this->keys[key_no]);
 
 		char sig_hex[41] = {0};
 		uint8_t sig[20] = {0};
 		if (!this->signer->set_key(this->signer, chunk_from_str(this->keys[key_no])))
 		{
-			DBG1(DBG_CFG, "unable to set key #%u", key_no);
+			DBG0(DBG_IKE, "error: unable to set key #%u", key_no);
 			return NULL;
 		}
 		if (!this->signer->get_signature(this->signer, chunk_from_str(pw), sig))
 		{
-			DBG1(DBG_CFG, "unable to sign with key #%u", key_no);
+			DBG0(DBG_IKE, "error: unable to get signature with key #%u and pw: %s", key_no, pw);
 			return NULL;
 		}
+
 		chunk_to_hex(chunk_from_thing(sig), sig_hex, FALSE);
-		DBG2(DBG_CFG, "secret hmac: %s", sig_hex);
+		DBG1(DBG_IKE, "secret hmac: %s", sig_hex);
 
 		shared = shared_key_create(type, chunk_clone(chunk_from_str(sig_hex)));
 		return shared->get_ref(shared);
@@ -99,16 +103,16 @@ static shared_key_t* callback_shared(private_unglue_cred_plugin_t *this,
 
 	if (this->enable_plain && sscanf(id, "%d@%d.device", &dev, &acc) == 2)
 	{
-		DBG2(DBG_CFG, "unglue-cred type = plain");
+		DBG1(DBG_IKE, "unglue-cred: type = plain");
 
 		snprintf(pw, sizeof(pw), "%u.%u@unglue", acc, dev);
-		DBG2(DBG_CFG, "secret plain: %s", pw);
+		DBG1(DBG_IKE, "unglue-cred: secret plain pw: %s", pw);
 
 		shared = shared_key_create(type, chunk_clone(chunk_from_str(pw)));
 		return shared->get_ref(shared);
 	}
 
-	DBG1(DBG_CFG, "unable to parse the id, unknown or disabled secret type");
+	DBG1(DBG_IKE, "warning: unable to parse the id, unknown or disabled secret type");
 	return NULL;
 }
 
@@ -123,7 +127,7 @@ static bool plugin_cb(private_unglue_cred_plugin_t *this,
 
 		if (!this->signer)
 		{
-			DBG1(DBG_LIB, "unable to create AUTH_HMAC_SHA1_160 signer");
+			DBG0(DBG_LIB, "error: unable to create AUTH_HMAC_SHA1_160 signer");
 			return FALSE;
 		}
 	}
@@ -180,7 +184,7 @@ plugin_t *unglue_cred_plugin_create()
 	this->enable_hmac = lib->settings->get_bool(lib->settings, "%s.plugins.unglue-cred.hmac", TRUE, lib->ns);
 	this->enable_plain = lib->settings->get_bool(lib->settings, "%s.plugins.unglue-cred.plain", FALSE, lib->ns);
 
-	DBG1(DBG_CFG, "unglue-cred: hmac=%s, plain=%s", this->enable_hmac ? "yes" : "no", this->enable_plain ? "yes" : "no");
+	DBG0(DBG_CFG, "unglue-cred: hmac=%s, plain=%s", this->enable_hmac ? "yes" : "no", this->enable_plain ? "yes" : "no");
 
 	this->keys[0] = lib->settings->get_str(lib->settings, "%s.plugins.unglue-cred.key0", NULL, lib->ns);
 	this->keys[1] = lib->settings->get_str(lib->settings, "%s.plugins.unglue-cred.key1", NULL, lib->ns);
