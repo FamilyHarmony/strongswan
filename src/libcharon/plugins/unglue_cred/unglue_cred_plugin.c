@@ -13,14 +13,12 @@ typedef struct private_unglue_cred_plugin_t private_unglue_cred_plugin_t;
 struct private_unglue_cred_plugin_t {
 	unglue_cred_plugin_t public;
 	callback_cred_t      *cb;
-	signer_t             *signer;
 	char*                keys[UG_MAX_KEYS];
 	bool                 enable_hmac;
 	bool                 enable_plain;
 };
 
-METHOD(plugin_t, get_name, char*,
-	private_unglue_cred_plugin_t *this)
+METHOD(plugin_t, get_name, char*, private_unglue_cred_plugin_t *this)
 {
 	return "unglue-cred";
 }
@@ -83,34 +81,27 @@ static shared_key_t* callback_shared(private_unglue_cred_plugin_t *this,
 
 		char sig_hex[41] = {0};
 		uint8_t sig[20] = {0};
-		if (!this->signer->set_key(this->signer, chunk_from_str(this->keys[key_no])))
+
+		signer_t *signer = lib->crypto->create_signer(lib->crypto, AUTH_HMAC_SHA1_160);
+		if (!signer)
+		{
+			DBG0(DBG_LIB, "error: unable to create AUTH_HMAC_SHA1_160 signer");
+			return NULL;
+		}
+		if (!signer->set_key(signer, chunk_from_str(this->keys[key_no])))
 		{
 			DBG0(DBG_IKE, "error: unable to set key #%u", key_no);
 			return NULL;
 		}
-		if (!this->signer->get_signature(this->signer, chunk_from_str(pw), sig))
+		if (!signer->get_signature(signer, chunk_from_str(pw), sig))
 		{
 			DBG0(DBG_IKE, "error: unable to get signature with key #%u and pw: %s", key_no, pw);
 			return NULL;
 		}
+		signer->destroy(signer);
 
 		chunk_to_hex(chunk_from_thing(sig), sig_hex, FALSE);
 		DBG1(DBG_IKE, "secret hmac: %s", sig_hex);
-
-		char sig_hex_x[41] = {0};
-		uint8_t sig_x[20] = {0};
-
-		signer_t *s = lib->crypto->create_signer(lib->crypto, AUTH_HMAC_SHA1_160);
-		if (s) {
-			if (s->set_key(s, chunk_from_str(this->keys[key_no])))
-				if (s->get_signature(s, chunk_from_str(pw), sig_x)) {
-					chunk_to_hex(chunk_from_thing(sig_x), sig_hex_x, FALSE);
-					DBG1(DBG_IKE, "secret hmac (alter test): %s", sig_hex_x);
-				}
-			s->destroy(s);
-		} else {
-			DBG1(DBG_IKE, "error: unable to create alternate signer");
-		}
 
 		shared = shared_key_create(type, chunk_clone(chunk_from_str(sig_hex)));
 		return shared->get_ref(shared);
@@ -136,20 +127,11 @@ static bool plugin_cb(private_unglue_cred_plugin_t *this,
 {
 	if (reg)
 	{
-		
 		lib->credmgr->add_set(lib->credmgr, &this->cb->set);
-		this->signer = lib->crypto->create_signer(lib->crypto, AUTH_HMAC_SHA1_160);
-
-		if (!this->signer)
-		{
-			DBG0(DBG_LIB, "error: unable to create AUTH_HMAC_SHA1_160 signer");
-			return FALSE;
-		}
 	}
 	else
 	{
 		lib->credmgr->remove_set(lib->credmgr, &this->cb->set);
-		if (this->signer) (this->signer)->destroy(this->signer);
 	}
 	return TRUE;
 }
